@@ -152,30 +152,110 @@
 #include <thread>
 #include <iostream>
 #include <atomic>
+#include <vector>
+#include <condition_variable>
 #include <mutex>
 using namespace std;
-atomic_int count=0;
-atomic_flag flag=ATOMIC_FLAG_INIT;
-void pright(int n){
-	while(1){
-		while(count<=0||flag.test_and_set(std::memory_order_acquire))
-			;
-		count--;
-		printf(")");
-		flag.clear(std::memory_order_release);
+//atomic_int count=0;
+//atomic_flag flag=ATOMIC_FLAG_INIT;
+//void pright(int n){
+//	while(1){
+//		while(count<=0||flag.test_and_set(std::memory_order_acquire))
+//			;
+//		count--;
+//		printf(")");
+//		flag.clear(std::memory_order_release);
+//	}
+//}
+//
+//void pleft(int arg) {
+//	while(1){
+//		while(count>=arg||flag.test_and_set(std::memory_order_acquire))
+//			;
+//		count++;
+//		printf("(");
+//		flag.clear(std::memory_order_release);
+//	}
+//}
+//int main(){
+//
+//	return 0;
+//}
+
+
+
+
+
+//dining philosopher
+
+//+ - - - - - - - - - +
+//|                   |
+//f p f p f p f p f p |
+//int fork[5]{};
+//void eat(int i){
+//	cout<<"philosopher "<<i<<" eating\n";
+//}
+//std::mutex mtx;
+//void philosopher(int n){
+//	while(1){
+//		lock_guard<mutex>lock(mtx);
+//		if(!fork[n]&&!fork[(n==4?0:n+1)]){
+//			fork[n]=1;fork[(n==4?0:n+1)]=1;
+//			eat(n);
+//			fork[n]=0;fork[(n==4?0:n+1)]=0;
+//		}
+//	}
+//}
+//
+//int main(){
+//	thread t[5];
+//	for(int i=0;i<5;++i){
+//		t[i]=thread(philosopher,i);
+//	}
+//	t[0].join();
+//	return 0;
+//}
+
+
+std::vector<int> forks(5);
+std::vector<std::mutex> forkMutexes(5);
+std::vector<std::condition_variable> forkCVs(5);
+
+void eat(int i) {
+	printf("philosopher %d eating\n",i);
+}
+
+void philosopher(int n) {
+	while (true) {
+		std::unique_lock<std::mutex> lock(forkMutexes[n]);
+		if (!forks[n] && !forks[(n == 4 ? 0 : n + 1)]) {
+			forks[n] = 1;
+			forks[(n == 4 ? 0 : n + 1)] = 1;
+			lock.unlock();
+			
+			eat(n);
+			
+			lock.lock();
+			forks[n] = 0;
+			forks[(n == 4 ? 0 : n + 1)] = 0;
+			forkCVs[n].notify_one();
+			forkCVs[(n == 4 ? 0 : n + 1)].notify_one();
+			
+		} else {
+			forkCVs[n].wait(lock);
+		}
 	}
 }
 
-void pleft(int arg) {
-	while(1){
-		while(count>=arg||flag.test_and_set(std::memory_order_acquire))
-			;
-		count++;
-		printf("(");
-		flag.clear(std::memory_order_release);
+int main() {
+	std::vector<std::thread> threads;
+	for (int i = 0; i < 5; ++i) {
+		threads.emplace_back(philosopher, i);
 	}
-}
-int main(){
+	
+	for (auto& thread : threads) {
+		thread.join();
+	}
 	
 	return 0;
 }
