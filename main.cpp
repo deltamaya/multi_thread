@@ -290,59 +290,186 @@ using namespace std;
 //}
 
 
-pthread_cond_t cv;
-pthread_mutex_t mtx;
-int n;
-int cnt=0;
-void* pleft(void*){
-	while(1){
-		pthread_mutex_lock(&mtx);
-		while(cnt>=n){
-			pthread_cond_wait(&cv,&mtx);
-//			释放互斥锁：线程在调用pthread_cond_wait时会将互斥锁的所有权释放，这样其他线程可以获取该互斥锁并访问受保护的共享资源。
+//pthread_cond_t cv;
+//pthread_mutex_t mtx;
+//int n;
+//int cnt=0;
+//void* pleft(void*){
+//	while(1){
+//		pthread_mutex_lock(&mtx);
+//		while(cnt>=n){
+//			pthread_cond_wait(&cv,&mtx);
+////			释放互斥锁：线程在调用pthread_cond_wait时会将互斥锁的所有权释放，这样其他线程可以获取该互斥锁并访问受保护的共享资源。
+////
+////			进入等待状态：线程进入等待状态，并等待条件变量的信号。在等待期间，线程不会继续执行后续的代码。
+////
+////			接收信号并重新获取互斥锁：当另一个线程调用pthread_cond_signal或pthread_cond_broadcast来唤醒等待的线程时，该线程会被唤醒，并重新尝试获取互斥锁。
+////
+////			获取互斥锁并继续执行：当等待的线程成功获取互斥锁后，它会从pthread_cond_wait函数返回，并继续执行后续的代码。
+//		}
+//		++cnt;
+//		printf("(",pthread_self());
+//		pthread_mutex_unlock(&mtx);
+//		pthread_cond_signal(&cv);
 //
-//			进入等待状态：线程进入等待状态，并等待条件变量的信号。在等待期间，线程不会继续执行后续的代码。
+//	}
+//}
+//void* pright(void*){
+//	while(1){
+//		pthread_mutex_lock(&mtx);
+//		while(cnt<=0){
+//			pthread_cond_wait(&cv,&mtx);
+//		}
+//		--cnt;
+//		printf(")",pthread_self());
+//		pthread_mutex_unlock(&mtx);
+//		pthread_cond_signal(&cv);
 //
-//			接收信号并重新获取互斥锁：当另一个线程调用pthread_cond_signal或pthread_cond_broadcast来唤醒等待的线程时，该线程会被唤醒，并重新尝试获取互斥锁。
 //
-//			获取互斥锁并继续执行：当等待的线程成功获取互斥锁后，它会从pthread_cond_wait函数返回，并继续执行后续的代码。
-		}
-		++cnt;
-		printf("(",pthread_self());
-		pthread_mutex_unlock(&mtx);
-		pthread_cond_signal(&cv);
+//	}
+//}
+//int main(){
+//	scanf("%d",&n);
+//	pthread_cond_init(&cv,NULL);
+//	pthread_mutex_init(&mtx,NULL);
+//	pthread_t t[4];
+//	for(int i=0;i<8;++i){
+//		if(i%2){
+//			pthread_create(&t[i],NULL,pleft,NULL);
+//		}else{
+//			pthread_create(&t[i],NULL,pright,NULL);
+//		}
+//	}
+//	for(int i=0;i<4;++i){
+//		pthread_join(t[i],NULL);
+//	}
+//	pthread_mutex_destroy(&mtx);
+//	pthread_cond_destroy(&cv);
+//}
 
-	}
+
+//#include <semaphore>
+//using namespace std;
+//vector<int> forks(5);
+//vector<mutex> forkMutexes(5);
+//counting_semaphore sem(4);
+//void eat(int i) {
+//	printf("philosopher %d eating\n",i);
+//}
+//
+//void philosopher(int n) {
+//	while (true) {
+//		sem.acquire();
+//		while(forks[n])
+//			;
+//		forkMutexes[n].lock();
+//		forks[n]=1;
+//		while(forks[(n+1==5?0:n+1)])
+//			;
+//		forkMutexes[(n+1==5?0:n+1)].lock();
+//		forks[(n+1==5?0:n+1)]=1;
+//		eat(n);
+//		forks[n]=0;
+//		forks[(n+1==5?0:n+1)]=0;
+//		forkMutexes[n].unlock();
+//		forkMutexes[(n+1==5?0:n+1)].unlock();
+//		sem.release();
+//	}
+//}
+//
+//int main() {
+//	vector<thread> threads;
+//	for (int i = 0; i < 5; ++i) {
+//		threads.emplace_back(philosopher, i);
+//	}
+//
+//	for (auto& thread : threads) {
+//		thread.join();
+//	}
+//
+//	return 0;
+//}
+
+
+
+
+
+
+//using namespace std;
+//vector<int> forks(5);
+//vector<mutex> forkMutexes(5);
+//vector<condition_variable>forkCVs(5);
+//void eat(int i) {
+//	printf("philosopher %d eating\n",i);
+//}
+//
+//void philosopher(int n) {
+//	while (true) {
+//		unique_lock<mutex>lock(forkMutexes[n]);
+//		while(forks[n]){
+//			forkCVs[n].wait(lock);
+//		}
+//		forks[n]=1;
+//		unique_lock<mutex>right(forkMutexes[(n+1==5?0:n+1)]);
+//		while(forks[(n+1==5?0:n+1)]){
+//			forkCVs[(n+1==5?0:n+1)].wait(right);
+//		}
+//		forks[(n+1==5?0:n+1)]=1;
+//		eat(n);
+//		forks[n]=0;
+//		forkCVs[n].notify_one();
+//		forks[(n+1==5?0:n+1)]=0;
+//		forkCVs[(n+1==5?0:n+1)].notify_one();
+//		lock.unlock();
+//		right.unlock();
+//	}
+//}
+//
+//int main() {
+//	vector<thread> threads;
+//	for (int i = 0; i < 5; ++i) {
+//		threads.emplace_back(philosopher, i);
+//	}
+//
+//	for (auto& thread : threads) {
+//		thread.join();
+//	}
+//
+//	return 0;
+//}
+
+vector<int> forks(5);
+mutex mtx;
+condition_variable cv;
+
+void eat(int i) {
+	printf("philosopher %d eating\n", i);
 }
-void* pright(void*){
-	while(1){
-		pthread_mutex_lock(&mtx);
-		while(cnt<=0){
-			pthread_cond_wait(&cv,&mtx);
-		}
-		--cnt;
-		printf(")",pthread_self());
-		pthread_mutex_unlock(&mtx);
-		pthread_cond_signal(&cv);
-
-
-	}
-}
-int main(){
-	scanf("%d",&n);
-	pthread_cond_init(&cv,NULL);
-	pthread_mutex_init(&mtx,NULL);
-	pthread_t t[4];
-	for(int i=0;i<8;++i){
-		if(i%2){
-			pthread_create(&t[i],NULL,pleft,NULL);
+//
+void philosopher(int n) {
+	while (true) {
+		unique_lock<mutex> lock(mtx);
+		if(!forks[n]&&!forks[(n+1)%5]){
+			forks[n]=1;forks[(n+1)%5]=1;
+			eat(n);
+			forks[n]=0;forks[(n+1)%5]=0;
+			lock.unlock();
+			cv.notify_all();
 		}else{
-			pthread_create(&t[i],NULL,pright,NULL);
+			cv.wait(lock);
 		}
 	}
-	for(int i=0;i<4;++i){
-		pthread_join(t[i],NULL);
+}
+
+int main() {
+	vector<thread> threads;
+	for (int i = 0; i < 5; ++i) {
+		threads.emplace_back(philosopher, i);
 	}
-	pthread_mutex_destroy(&mtx);
-	pthread_cond_destroy(&cv);
+	
+	for (auto& thread : threads) {
+		thread.join();
+	}
+	
+	return 0;
 }
