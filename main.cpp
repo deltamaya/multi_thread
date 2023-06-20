@@ -438,38 +438,107 @@ using namespace std;
 //	return 0;
 //}
 
-vector<int> forks(5);
-mutex mtx;
-condition_variable cv;
-
-void eat(int i) {
-	printf("philosopher %d eating\n", i);
-}
+//vector<int> forks(5);
 //
-void philosopher(int n) {
-	while (true) {
-		unique_lock<mutex> lock(mtx);
-		if(!forks[n]&&!forks[(n+1)%5]){
-			forks[n]=1;forks[(n+1)%5]=1;
-			eat(n);
-			forks[n]=0;forks[(n+1)%5]=0;
-			lock.unlock();
-			cv.notify_all();
-		}else{
-			cv.wait(lock);
+//condition_variable cv;
+//
+//void eat(int i) {
+//	printf("philosopher %d eating\n", i);
+//}
+////
+//void philosopher(int n) {
+//	while (true) {
+//		unique_lock<mutex> lock(mtx);
+//		if(!forks[n]&&!forks[(n+1)%5]){
+//			forks[n]=1;forks[(n+1)%5]=1;
+//			eat(n);
+//			forks[n]=0;forks[(n+1)%5]=0;
+//			lock.unlock();
+//			cv.notify_all();
+//		}else{
+//			cv.wait(lock);
+//		}
+//	}
+//}
+
+
+
+
+//pthread_mutex_t mtx_fuel;
+//pthread_cond_t cond_fuel;
+//int fuel;
+//void* CarRun(void* ){
+//	while(true){
+//		pthread_mutex_lock(&mtx_fuel);
+//		while(fuel<5){
+//			pthread_cond_wait(&cond_fuel,&mtx_fuel);
+//		}
+//		fuel -= 5;
+//		printf("Car run.%d left\n", fuel);
+//
+//		pthread_mutex_unlock(&mtx_fuel);
+//
+//	}
+//}
+//
+//void* FuelFilling(void*){
+//	while(true){
+//		pthread_mutex_lock(&mtx_fuel);
+//		fuel+=3;
+//		printf("Fuel filled. %d left\n",fuel);
+//		pthread_mutex_unlock(&mtx_fuel);
+//		pthread_cond_signal(&cond_fuel);
+//
+//	}
+//}
+//
+//int main(int argc,char* argv[]){
+//	mtx_fuel=PTHREAD_MUTEX_INITIALIZER;
+//	//equivalent to
+//	//pthread_mutex_init(&mtx_fuel,NULL);
+//	cond_fuel=PTHREAD_COND_INITIALIZER;
+//	pthread_t ts[2];
+//	for(int i=0;i<2;++i){
+//		if(!i){
+//			pthread_create(&ts[i],NULL,CarRun,NULL);
+//		}else{
+//			pthread_create(&ts[1],NULL,FuelFilling,NULL);
+//		}
+//	}
+//	pthread_join(ts[0],NULL);
+//	pthread_join(ts[1],NULL);
+//	return 0;
+//}
+
+
+mutex mtx_fuel;
+condition_variable cond_fuel;
+int fuel;
+void CarRun(){
+	while(true){
+		unique_lock<mutex>lock(mtx_fuel);
+		while(fuel<5){
+			cond_fuel.wait(lock);
 		}
+		fuel-=5;
+		cout<<"car run. "<<fuel<<" left"<<endl;
+		
 	}
 }
 
-int main() {
-	vector<thread> threads;
-	for (int i = 0; i < 5; ++i) {
-		threads.emplace_back(philosopher, i);
+void FuelFilling(){
+	while(true){
+		unique_lock<mutex>lock(mtx_fuel);
+		fuel+=3;
+		cout<<"fuel filled "<<fuel<<" left"<<endl;
+		lock.unlock();
+		cond_fuel.notify_one();
 	}
-	
-	for (auto& thread : threads) {
-		thread.join();
-	}
-	
-	return 0;
+}
+
+int main(){
+	thread t1(CarRun);
+	thread t2(FuelFilling);
+	t1.join();
+	t2.join();
 }
